@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+tmp/
+**/.clawscore-backup/
+fixtures/**/*.bak*
+test-output.svg
+.vitest/

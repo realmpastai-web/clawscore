@@ -1,0 +1,33 @@
+{
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "oc_gw_fixture_token_not_a_secret_bb"
+    },
+    "controlUi": {
+      "allowedOrigins": ["http://127.0.0.1:18789"]
+    }
+  },
+  "agents": {
+    "defaults": {
+      "sandbox": {
+        "mode": "off"
+      }
+    }
+  },
+  "tools": {
+    "exec": {
+      "mode": "full"
+    }
+  },
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "allowFrom": ["U123FIX"]
+    }
+  }
+}
