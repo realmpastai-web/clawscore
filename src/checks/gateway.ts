@@ -1,8 +1,12 @@
 import { asObject, asString } from "../locate.js";
 import type { Finding, Install, JsonObject } from "../types.js";
 
-const LOOPBACK = new Set(["loopback", "127.0.0.1", "localhost", "::1", "[::1]"]);
-const PUBLIC_BIND = new Set(["0.0.0.0", "::", "[::]", "lan", "auto", "*", "custom"]);
+/** Official gateway.bind enum (OpenClaw Zod schema). */
+const BIND_LOOPBACK = new Set(["loopback"]);
+const BIND_PUBLIC = new Set(["lan", "auto", "tailnet", "custom"]);
+/** Legacy host aliases still accepted by older installs; not valid enum values. */
+const LEGACY_LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+const LEGACY_PUBLIC = new Set(["0.0.0.0", "::", "[::]", "*"]);
 
 export function checkGateway(install: Install): Finding[] {
   const findings: Finding[] = [];
@@ -17,8 +21,8 @@ export function checkGateway(install: Install): Finding[] {
       title: "Gateway bound to a public interface",
       severity: "critical",
       weight: 12,
-      evidence: `gateway.bind is ${JSON.stringify(bind)}${customHost ? ` (customBindHost ${JSON.stringify(customHost)})` : ""} — this listens beyond loopback (0.0.0.0 / LAN / all interfaces).`,
-      fix: 'Set gateway.bind to "loopback" (or 127.0.0.1) so the Control UI and API are not reachable from other hosts.',
+      evidence: `gateway.bind is ${JSON.stringify(bind)}${customHost ? ` (customBindHost ${JSON.stringify(customHost)})` : ""} — official values are loopback | lan | auto | tailnet | custom; this listens beyond loopback.`,
+      fix: 'Set gateway.bind to "loopback" (the documented local-only enum value).',
       file: install.configPath ?? undefined,
     });
   }
@@ -30,9 +34,11 @@ export function checkGateway(install: Install): Finding[] {
 
 function isPublicBind(bind: string, customHost: string | null): boolean {
   const b = bind.trim().toLowerCase();
-  if (LOOPBACK.has(b)) return false;
-  if (PUBLIC_BIND.has(b)) {
-    if (b === "custom" && customHost && LOOPBACK.has(customHost.trim().toLowerCase())) return false;
+  if (BIND_LOOPBACK.has(b) || LEGACY_LOOPBACK.has(b)) return false;
+  if (BIND_PUBLIC.has(b) || LEGACY_PUBLIC.has(b)) {
+    if (b === "custom" && customHost && (BIND_LOOPBACK.has(customHost.trim().toLowerCase()) || LEGACY_LOOPBACK.has(customHost.trim().toLowerCase()))) {
+      return false;
+    }
     return true;
   }
   if (/^\d+\.\d+\.\d+\.\d+$/.test(b)) {

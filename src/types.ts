@@ -82,6 +82,7 @@ export interface CliOptions {
   markdown: boolean;
   badge?: string;
   yes: boolean;
+  restore?: string;
   updateAdvisories: boolean;
   help: boolean;
   version: boolean;

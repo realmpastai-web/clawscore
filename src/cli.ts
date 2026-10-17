@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { updateAdvisories } from "./advisories.js";
-import { applyFix, planFix } from "./fix.js";
+import { applyFix, planFix, restoreFromBackup } from "./fix.js";
 import { formatBadge } from "./report/badge.js";
 import { formatJson } from "./report/json.js";
 import { formatMarkdown } from "./report/markdown.js";
@@ -19,6 +19,7 @@ One command. A 0-100 security score for your OpenClaw setup, and the fixes.
 Usage:
   clawscore [scan] [--path <dir>] [--json] [--markdown] [--badge <out.svg>]
   clawscore fix [--path <dir>] [--yes]
+  clawscore fix --restore <backupDir> [--path <dir>]
   clawscore skill <path>
   clawscore --update-advisories
 
@@ -28,6 +29,7 @@ Options:
   --markdown             Print a shareable Markdown report
   --badge <out.svg>      Write a shields.io-style SVG badge
   --yes                  Apply safe fixes (backup first). Without --yes, fix is a dry run.
+  --restore <backupDir>  Restore openclaw.json from a .clawscore-backup directory
   --update-advisories    Fetch advisory data over the network (off by default)
   -h, --help             Show this help
   -V, --version          Show version
@@ -53,6 +55,10 @@ export function parseArgs(argv: string[]): CliOptions {
     else if (a === "--json") opts.json = true;
     else if (a === "--markdown") opts.markdown = true;
     else if (a === "--yes" || a === "-y") opts.yes = true;
+    else if (a === "--restore") {
+      opts.restore = argv[++i];
+      if (!opts.restore) throw new Error("--restore requires a backup directory");
+    } else if (a.startsWith("--restore=")) opts.restore = a.slice("--restore=".length);
     else if (a === "--update-advisories") opts.updateAdvisories = true;
     else if (a === "--path") {
       opts.path = argv[++i];
@@ -76,6 +82,7 @@ export function parseArgs(argv: string[]): CliOptions {
   } else if (rest.length > 0 && !opts.path) {
     opts.path = rest[0];
   }
+  if (opts.restore) opts.command = "fix";
   return opts;
 }
 
@@ -154,9 +161,15 @@ function runFix(
   opts: CliOptions,
   io: { log: (s: string) => void; err: (s: string) => void },
 ): number {
+  if (opts.restore) {
+    const result = restoreFromBackup(opts.restore, opts.path);
+    io.log(`Restored ${result.restored} from ${result.backupDir}`);
+    return 0;
+  }
   const plan = planFix(opts.path);
   io.log("Planned safe fixes (reversible; skills are never deleted):");
   for (const n of plan.notes) io.log(`  - ${n}`);
+  for (const m of plan.manuals) io.log(`  - Manual: ${m}`);
   io.log("");
   if (plan.diff) {
     io.log(plan.diff);
@@ -172,6 +185,7 @@ function runFix(
   }
   const result = applyFix(plan, { yes: true });
   io.log(`Backup: ${result.backupDir}`);
+  io.log(`Restore: ${result.restoreCommand}`);
   io.log("Fixes applied. Re-scan with: clawscore --path " + plan.path);
   return 0;
 }

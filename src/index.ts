@@ -1,7 +1,7 @@
 export { CLAWSCORE_VERSION } from "./types.js";
 export { scan } from "./scan.js";
 export { scanSkill, skillExitCode } from "./skill-scan.js";
-export { planFix, applyFix } from "./fix.js";
+export { planFix, applyFix, restoreFromBackup } from "./fix.js";
 export { loadAdvisories, updateAdvisories } from "./advisories.js";
 export { formatTerminal } from "./report/terminal.js";
 export { formatJson } from "./report/json.js";

@@ -1,4 +1,5 @@
 import { redactSecrets } from "../redact.js";
+import { scoreEquation } from "../score.js";
 import type { Report } from "../types.js";
 
 export function formatMarkdown(report: Report): string {
@@ -6,6 +7,7 @@ export function formatMarkdown(report: Report): string {
     `# clawscore report`,
     "",
     `**Score:** ${report.score} / 100  `,
+    `**Score math:** ${scoreEquation(report.findings)} (repeat ids count once)  `,
     `**Grade:** ${report.grade}  `,
     `**Path:** \`${report.path}\`  `,
     `**OpenClaw version:** ${report.openclawVersion ?? "unknown"}  `,
@@ -27,7 +29,7 @@ export function formatMarkdown(report: Report): string {
   } else {
     lines.push("## Findings", "");
     for (const f of report.findings) {
-      lines.push(`### \`${f.id}\` (${f.severity}, weight ${f.weight})`);
+      lines.push(`### \`${f.id}\` (${f.severity}, −${f.weight} pts)`);
       lines.push("");
       if (f.title) lines.push(`**${f.title}**`);
       lines.push("");

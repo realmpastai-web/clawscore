@@ -1,3 +1,4 @@
+import { scoreEquation } from "../score.js";
 import type { Report } from "../types.js";
 import { redactSecrets } from "../redact.js";
 
@@ -29,6 +30,7 @@ export function formatTerminal(report: Report): string {
   lines.push(
     `  ${c.bold}SCORE${c.reset}  ${gc}${report.score}/100${c.reset}   ${c.bold}GRADE ${report.grade}${c.reset}`,
   );
+  lines.push(`  ${c.dim}${scoreEquation(report.findings)}  (repeat ids count once)${c.reset}`);
   lines.push("");
   const { summary } = report;
   lines.push(
@@ -42,7 +44,7 @@ export function formatTerminal(report: Report): string {
   lines.push("");
   for (const f of report.findings) {
     const tag = f.severity.toUpperCase().padEnd(8);
-    lines.push(`${severityMark(f.severity)} [${tag}] ${c.bold}${f.id}${c.reset}  weight ${f.weight}`);
+    lines.push(`${severityMark(f.severity)} [${tag}] ${c.bold}${f.id}${c.reset}  −${f.weight} pts`);
     if (f.title) lines.push(`         ${f.title}`);
     lines.push(`         evidence: ${f.evidence}`);
     lines.push(`         fix: ${f.fix}`);

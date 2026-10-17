@@ -26,7 +26,6 @@
   "tools": {
     "exec": {
       "mode": "allowlist",
-      "allowlist": ["/usr/bin/echo", "/usr/bin/uname"],
       "safeBins": ["echo"]
     }
   },

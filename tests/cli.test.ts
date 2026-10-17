@@ -38,6 +38,8 @@ describe("CLI", () => {
     expect(r.stdout).toMatch(/plaintext-secret/);
     expect(r.stdout).toMatch(/skill-risky-pattern/);
     expect(r.stdout).toMatch(/file-permissions/);
+    expect(r.stdout).toMatch(/−\d+ pts/);
+    expect(r.stdout).toMatch(/100 − /);
     expect(r.stdout).toMatch(/\[REDACTED\]/);
     expect(r.stdout).not.toMatch(/fixture-openai-key-placeholder-value/);
     expect(r.stdout).not.toMatch(/discord-bot-token-placeholder-value/);
@@ -72,5 +74,6 @@ describe("CLI", () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toMatch(/^# clawscore report/m);
     expect(r.stdout).toMatch(/\*\*Score:\*\*/);
+    expect(r.stdout).toMatch(/\*\*Score math:\*\*/);
   });
 });

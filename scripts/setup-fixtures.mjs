@@ -36,4 +36,7 @@ chmodTree(join(root, "fixtures", "good"), 0o600, sensitive);
 chmodTree(join(root, "fixtures", "mixed"), 0o600, sensitive);
 chmodTree(join(root, "fixtures", "bad"), 0o666, sensitive);
 
+const skillJs = (file) => /\.(js|mjs|cjs)$/i.test(file);
+chmodTree(join(root, "fixtures"), 0o644, skillJs);
+
 console.log("fixture permissions applied");

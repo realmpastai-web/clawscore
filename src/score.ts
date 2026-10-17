@@ -12,13 +12,33 @@ export function summarize(findings: Finding[]): ReportSummary {
   return summary;
 }
 
-export function computeScore(findings: Finding[]): number {
+export interface Deduction {
+  id: string;
+  weight: number;
+}
+
+/** One row per check id (max weight if the same id appears more than once). */
+export function deductions(findings: Finding[]): Deduction[] {
   const byId = new Map<string, number>();
   for (const f of findings) {
     byId.set(f.id, Math.max(byId.get(f.id) ?? 0, f.weight));
   }
-  const deducted = [...byId.values()].reduce((sum, w) => sum + w, 0);
+  return [...byId.entries()]
+    .map(([id, weight]) => ({ id, weight }))
+    .sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id));
+}
+
+export function computeScore(findings: Finding[]): number {
+  const deducted = deductions(findings).reduce((sum, d) => sum + d.weight, 0);
   return Math.max(0, Math.min(100, 100 - deducted));
+}
+
+/** `100 − 12 − 10 − 8 = 70` using unique check ids so the printed score adds up. */
+export function scoreEquation(findings: Finding[]): string {
+  const parts = deductions(findings);
+  const score = computeScore(findings);
+  if (parts.length === 0) return "100 − 0 = 100";
+  return `100 − ${parts.map((p) => p.weight).join(" − ")} = ${score}`;
 }
 
 /**

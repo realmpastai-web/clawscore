@@ -30,7 +30,8 @@ export function checkSandboxAndExec(install: Install): Finding[] {
 
 function checkExec(exec: JsonObject, file?: string | null): Finding[] {
   const findings: Finding[] = [];
-  const mode = (asString(exec.mode) ?? "full").toLowerCase();
+  // Official: tools.exec.mode (deny|allowlist|ask|auto|full). Legacy: tools.exec.security.
+  const mode = (asString(exec.mode) ?? asString(exec.security) ?? "full").toLowerCase();
   const unrestricted = mode === "full" || mode === "unsafe";
 
   if (unrestricted) {
@@ -40,26 +41,29 @@ function checkExec(exec: JsonObject, file?: string | null): Finding[] {
       severity: "high",
       weight: 5,
       evidence: `tools.exec.mode is ${JSON.stringify(mode)} — host exec runs without an allow-list or approval prompt (OpenClaw default is full).`,
-      fix: 'Set tools.exec.mode to "allowlist" or "ask", and list the exact binaries the agent may run.',
+      fix: 'Set tools.exec.mode to "allowlist", "ask", or "deny", and configure tools.exec.safeBins (stdin-only) plus the host exec approvals allowlist.',
       file: file ?? undefined,
     });
   }
 
-  const allowlist = exec.allowlist ?? exec.allowList ?? exec.allowed;
-  const hasAllowlist = Array.isArray(allowlist) && allowlist.length > 0;
+  // Official config key is tools.exec.safeBins. Durable command allowlists live in the
+  // host approvals file, not openclaw.json. Leftover allowlist/allowList/allowed arrays
+  // are accepted as heuristic evidence only (not in the official Zod schema).
+  const leftover = exec.allowlist ?? exec.allowList ?? exec.allowed;
+  const hasLeftoverAllowlist = Array.isArray(leftover) && leftover.length > 0;
   const hasSafeBins = Array.isArray(exec.safeBins) && exec.safeBins.length > 0;
   const policyMode = mode === "allowlist" || mode === "ask" || mode === "auto" || mode === "deny";
 
-  if (!hasAllowlist && !hasSafeBins && mode !== "deny") {
+  if (!hasLeftoverAllowlist && !hasSafeBins && mode !== "deny") {
     findings.push({
       id: "exec-allowlist-missing",
       title: "Missing exec allow-list",
       severity: "medium",
       weight: 4,
       evidence: policyMode
-        ? `tools.exec.mode is ${JSON.stringify(mode)} but no tools.exec.allowlist (or safeBins) entries were found.`
-        : "No tools.exec.allowlist is configured.",
-      fix: "Add tools.exec.allowlist with resolved executable paths (and optional argPattern). Keep autoAllowSkills false unless Gateway and node share a trust boundary.",
+        ? `tools.exec.mode is ${JSON.stringify(mode)} but tools.exec.safeBins is empty and no leftover allowlist array was found.`
+        : "No tools.exec.safeBins (official) or leftover allowlist array is configured.",
+      fix: "Set tools.exec.safeBins for stdin-only filters, and add resolved executable paths in the host exec approvals allowlist (not a tools.exec.allowlist key).",
       file: file ?? undefined,
     });
   }

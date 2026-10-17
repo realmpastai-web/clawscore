@@ -1,6 +1,9 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { scan } from "../src/scan.js";
-import { fixture } from "./helpers.js";
+import { cleanup, fixture } from "./helpers.js";
 
 describe("scan fixtures", () => {
   it("scores fixtures/good at 90+ grade A", () => {
@@ -47,6 +50,28 @@ describe("scan fixtures", () => {
     const ids = report.findings.map((f) => f.id);
     expect(ids).not.toContain("advisory-CVE-2026-25253");
     expect(ids).not.toContain("advisory-CVE-2026-24763");
+  });
+
+  it("flags official lan bind and legacy 0.0.0.0 bind", () => {
+    const lan = scan({ path: fixture("bad") });
+    expect(lan.findings.some((f) => f.id === "gateway-public-bind")).toBe(true);
+    expect(lan.findings.find((f) => f.id === "gateway-public-bind")!.evidence).toMatch(/"lan"/);
+
+    const dir = mkdtempSync(join(tmpdir(), "clawscore-legacy-bind-"));
+    try {
+      writeFileSync(
+        join(dir, "openclaw.json"),
+        JSON.stringify({
+          gateway: { bind: "0.0.0.0", auth: { mode: "token", token: "oc_gw_fixture_token_not_a_secret_cc" } },
+        }),
+        "utf8",
+      );
+      writeFileSync(join(dir, "VERSION"), "2026.1.29\n", "utf8");
+      const report = scan({ path: dir });
+      expect(report.findings.some((f) => f.id === "gateway-public-bind")).toBe(true);
+    } finally {
+      cleanup(dir);
+    }
   });
 
   it("never calls fetch during an offline scan", async () => {

