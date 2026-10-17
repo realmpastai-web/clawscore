@@ -15,6 +15,29 @@ function withEmptyPath<T>(fn: () => T): T {
   }
 }
 
+/** Opt back into PATH / npm package discovery (disabled by tests/setup.ts). */
+function withPkgDiscovery<T>(fn: () => T): T {
+  const orig = process.env.CLAWSCORE_NO_PKG_DISCOVERY;
+  delete process.env.CLAWSCORE_NO_PKG_DISCOVERY;
+  try {
+    return fn();
+  } finally {
+    if (orig === undefined) delete process.env.CLAWSCORE_NO_PKG_DISCOVERY;
+    else process.env.CLAWSCORE_NO_PKG_DISCOVERY = orig;
+  }
+}
+
+function writeMinimalInstall(dir: string, version: string): void {
+  writeFileSync(
+    join(dir, "openclaw.json"),
+    JSON.stringify({
+      gateway: { bind: "loopback", auth: { mode: "token", token: "oc_gw_fixture_token_not_a_secret_jj" } },
+    }),
+    "utf8",
+  );
+  writeFileSync(join(dir, "VERSION"), `${version}\n`, "utf8");
+}
+
 function artifactHighIds(report: { findings: { id: string; severity: string }[] }): string[] {
   return report.findings.filter((f) => f.id.startsWith("artifact-") && f.severity === "high").map((f) => f.id);
 }
@@ -64,6 +87,50 @@ describe("scan fixtures", () => {
     const ids = report.findings.map((f) => f.id);
     expect(ids).not.toContain("advisory-CVE-2026-25253");
     expect(ids).not.toContain("advisory-CVE-2026-24763");
+  });
+
+  it("flags both verified advisories on pre-calendar 0.9.0", () => {
+    const dir = mkdtempSync(join(tmpdir(), "clawscore-0.9.0-"));
+    try {
+      writeMinimalInstall(dir, "0.9.0");
+      const report = scan({ path: dir });
+      const ids = report.findings.map((f) => f.id);
+      expect(ids).toContain("advisory-CVE-2026-25253");
+      expect(ids).toContain("advisory-CVE-2026-24763");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  it("skips advisories only for versions ending in -fixture", () => {
+    const report = scan({
+      path: fixture("artifact-vuln"),
+      packagePath: fixture("artifact-vuln"),
+    });
+    const skip = report.findings.find((f) => f.id === "advisory-skipped");
+    expect(skip?.severity).toBe("info");
+    expect(skip?.weight).toBe(0);
+    expect(skip?.evidence).toBe("advisory check skipped: fixture version");
+    const ids = report.findings.map((f) => f.id);
+    expect(ids).not.toContain("advisory-CVE-2026-25253");
+    expect(ids).not.toContain("advisory-CVE-2026-24763");
+  });
+
+  it("emits an info finding when the version cannot be parsed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "clawscore-unparsed-"));
+    try {
+      writeMinimalInstall(dir, "not-a-version");
+      const report = scan({ path: dir });
+      const unparsed = report.findings.find((f) => f.id === "version-unparsed");
+      expect(unparsed?.severity).toBe("info");
+      expect(unparsed?.weight).toBe(0);
+      expect(unparsed?.evidence).toMatch(/could not be parsed/);
+      const ids = report.findings.map((f) => f.id);
+      expect(ids).not.toContain("advisory-CVE-2026-25253");
+      expect(ids).not.toContain("advisory-CVE-2026-24763");
+    } finally {
+      cleanup(dir);
+    }
   });
 
 
@@ -164,6 +231,15 @@ describe("scan fixtures", () => {
     expect(report.findings.map((f) => f.id)).toContain("artifact-exec-path-injection");
   });
 
+  it("does not flag R2 on OpenClaw 2026.1.29 node-command / execApprovals config shapes", () => {
+    const report = scan({
+      path: fixture("artifact-r2-node-policy"),
+      packagePath: fixture("artifact-r2-node-policy"),
+    });
+    expect(artifactHighIds(report)).toEqual([]);
+    expect(report.findings.map((f) => f.id)).not.toContain("artifact-exec-path-injection");
+  });
+
   it("terminates on a symlink loop in dist/ without throwing", () => {
     const dist = fixture("artifact-symlink-loop/dist");
     try {
@@ -258,10 +334,95 @@ describe("scan fixtures", () => {
       const orig = process.env.PATH;
       process.env.PATH = bin;
       try {
-        const report = scan({ path: state });
+        const report = withPkgDiscovery(() => scan({ path: state }));
         const ids = report.findings.map((f) => f.id);
         expect(ids).toContain("artifact-gatewayurl-exfil");
         expect(ids).toContain("artifact-exec-path-injection");
+      } finally {
+        process.env.PATH = orig;
+      }
+    } finally {
+      cleanup(root);
+    }
+  });
+
+  it("prefers a package under explicit --path over PATH", () => {
+    const root = mkdtempSync(join(tmpdir(), "clawscore-path-prec-"));
+    try {
+      const vulnPkg = join(root, "pkg", "openclaw");
+      const bin = join(root, "bin");
+      mkdirSync(join(vulnPkg, "dist", "control-ui", "assets"), { recursive: true });
+      mkdirSync(join(vulnPkg, "dist", "infra"), { recursive: true });
+      mkdirSync(bin, { recursive: true });
+      writeFileSync(join(vulnPkg, "package.json"), JSON.stringify({ name: "openclaw", version: "0.0.0-fixture" }), "utf8");
+      writeFileSync(join(vulnPkg, "openclaw.mjs"), "// INERT FIXTURE\nexport {}\n", "utf8");
+      writeFileSync(
+        join(vulnPkg, "dist", "control-ui", "assets", "index-fixture.js"),
+        '// INERT FIXTURE — synthetic clawscore test data, NOT real OpenClaw code, never executed.\nfunction boot(params){var l=params.get("gatewayUrl");if(l){connect({gatewayUrl:l,token:store.token})}params.delete("gatewayUrl")}\n',
+        "utf8",
+      );
+      writeFileSync(
+        join(vulnPkg, "dist", "infra", "exec-approvals-fixture.js"),
+        "// INERT FIXTURE — synthetic clawscore test data, NOT real OpenClaw code, never executed.\nfunction execApproval(cmd){if(allowlist.has(cmd.name)){return runExec(cmd)}return deny()}\n",
+        "utf8",
+      );
+      const binPath = join(bin, "openclaw");
+      symlinkSync(join(vulnPkg, "openclaw.mjs"), binPath);
+      chmodSync(binPath, 0o755);
+      const orig = process.env.PATH;
+      process.env.PATH = bin;
+      try {
+        const report = withPkgDiscovery(() =>
+          scan({ path: fixture("artifact-patched") }),
+        );
+        expect(artifactHighIds(report)).toEqual([]);
+      } finally {
+        process.env.PATH = orig;
+      }
+    } finally {
+      cleanup(root);
+    }
+  });
+
+  it("does not pick up a PATH openclaw when CLAWSCORE_NO_PKG_DISCOVERY=1", () => {
+    const root = mkdtempSync(join(tmpdir(), "clawscore-no-disc-"));
+    try {
+      const state = join(root, "state");
+      const pkg = join(root, "pkg", "openclaw");
+      const bin = join(root, "bin");
+      mkdirSync(state, { recursive: true });
+      mkdirSync(join(pkg, "dist", "control-ui", "assets"), { recursive: true });
+      mkdirSync(join(pkg, "dist", "infra"), { recursive: true });
+      mkdirSync(bin, { recursive: true });
+      writeFileSync(
+        join(state, "openclaw.json"),
+        JSON.stringify({
+          gateway: { bind: "loopback", auth: { mode: "token", token: "oc_gw_fixture_token_not_a_secret_kk" } },
+        }),
+        "utf8",
+      );
+      writeFileSync(join(pkg, "package.json"), JSON.stringify({ name: "openclaw", version: "0.0.0-fixture" }), "utf8");
+      writeFileSync(join(pkg, "openclaw.mjs"), "// INERT FIXTURE\nexport {}\n", "utf8");
+      writeFileSync(
+        join(pkg, "dist", "control-ui", "assets", "index-fixture.js"),
+        '// INERT FIXTURE — synthetic clawscore test data, NOT real OpenClaw code, never executed.\nfunction boot(params){var l=params.get("gatewayUrl");if(l){connect({gatewayUrl:l,token:store.token})}params.delete("gatewayUrl")}\n',
+        "utf8",
+      );
+      writeFileSync(
+        join(pkg, "dist", "infra", "exec-approvals-fixture.js"),
+        "// INERT FIXTURE — synthetic clawscore test data, NOT real OpenClaw code, never executed.\nfunction execApproval(cmd){if(allowlist.has(cmd.name)){return runExec(cmd)}return deny()}\n",
+        "utf8",
+      );
+      const binPath = join(bin, "openclaw");
+      symlinkSync(join(pkg, "openclaw.mjs"), binPath);
+      chmodSync(binPath, 0o755);
+      const orig = process.env.PATH;
+      process.env.PATH = bin;
+      try {
+        expect(process.env.CLAWSCORE_NO_PKG_DISCOVERY).toBe("1");
+        const report = scan({ path: state });
+        expect(artifactHighIds(report)).toEqual([]);
+        expect(report.findings.map((f) => f.id)).not.toContain("artifact-gatewayurl-exfil");
       } finally {
         process.env.PATH = orig;
       }

@@ -30,7 +30,7 @@ export function locateInstall(pathOverride?: string, packagePathOverride?: strin
   }
   const version = readVersion(root, config);
   const skillDirs = discoverSkillDirs(root, config);
-  const packageDir = resolvePackageDir(root, packagePathOverride);
+  const packageDir = resolvePackageDir(root, packagePathOverride, Boolean(pathOverride));
   return { root, configPath, config, configText, version, skillDirs, packageDir };
 }
 
@@ -275,10 +275,12 @@ function packageDirFromInstallRoot(root: string): string | null {
   return null;
 }
 
-/** Resolve the OpenClaw package directory. Never touches the network. */
-export function resolvePackageDir(installRoot: string, packagePathOverride?: string): string | null {
-  if (packagePathOverride) return existingDirectory(resolve(packagePathOverride));
+function pkgDiscoveryDisabled(): boolean {
+  return process.env.CLAWSCORE_NO_PKG_DISCOVERY === "1";
+}
 
+function packageDirFromPathOrNpm(): string | null {
+  if (pkgDiscoveryDisabled()) return null;
   for (const name of PACKAGE_NAMES) {
     const fromBin = packageDirFromBinary(name);
     if (fromBin) return fromBin;
@@ -287,5 +289,26 @@ export function resolvePackageDir(installRoot: string, packagePathOverride?: str
     const fromNpm = packageDirFromNpmGlobal(name);
     if (fromNpm) return fromNpm;
   }
+  return null;
+}
+
+/** Resolve the OpenClaw package directory. Never touches the network. */
+export function resolvePackageDir(
+  installRoot: string,
+  packagePathOverride?: string,
+  pathExplicit = false,
+): string | null {
+  if (packagePathOverride) return existingDirectory(resolve(packagePathOverride));
+
+  // Explicit --path: look under that install root before PATH / npm -g, so a
+  // developer's global openclaw cannot shadow a local unpack or fixture.
+  if (pathExplicit) {
+    const fromRoot = packageDirFromInstallRoot(installRoot);
+    if (fromRoot) return fromRoot;
+    return packageDirFromPathOrNpm();
+  }
+
+  const fromDisc = packageDirFromPathOrNpm();
+  if (fromDisc) return fromDisc;
   return packageDirFromInstallRoot(installRoot);
 }

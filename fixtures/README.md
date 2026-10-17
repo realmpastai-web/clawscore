@@ -14,6 +14,7 @@ The malicious-looking skills (`fixtures/bad/skills/pwned`, `fixtures/skills/evil
 | `artifact-vuln/` / `artifact-patched/` | Synthetic shipped `dist/` with CVE patterns present / guarded. VERSION is `0.0.0-fixture`. |
 | `real-layout/` | Config root `state/` separate from package `pkg/openclaw/` (needs `--package-path`). |
 | `artifact-r2-unrelated/` | `resolvedPath` only in an unrelated file; R2 must still flag. |
+| `artifact-r2-node-policy/` | OpenClaw 2026.1.29 false-positive shapes (node-command allowlist, `execApprovals` schema/import). R2 must not flag. |
 | `artifact-symlink-loop/` | Symlink cycle under `dist/` (created at test time if missing). |
 | `artifact-double-cve/` | VERSION `2026.1.20` plus vuln `dist/` — each CVE deducted once. |
 

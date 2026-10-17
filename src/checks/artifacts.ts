@@ -9,7 +9,7 @@ import type { Finding, Install } from "../types.js";
 // version string alone. Conservative: if in doubt, no high finding.
 
 const MAX_BYTES = 8 * 1024 * 1024; // skip very large single files defensively
-const MAX_FILES = 6000;
+const MAX_FILES = 20_000; // 2026.10.4 ships ~10k dist JS files after rolldown split
 
 const ADVISORY_ARTIFACT_PAIRS: Array<[advisoryId: string, artifactId: string]> = [
   ["advisory-CVE-2026-25253", "artifact-gatewayurl-exfil"],
@@ -114,7 +114,14 @@ function hasGatewayGuard(text: string): boolean {
 }
 
 function hasExecAllowlist(text: string): boolean {
-  return /allowlist|allowList/.test(text) && /execApproval|exec-approval|execDefault|\bexec\b/.test(text);
+  // Synthetic CVE fixtures: execApproval() matching allowlist.has(cmd.name).
+  // Do not use a bare `execApproval` / `\bexec\b` substring — OpenClaw 2026.1.29
+  // (and later) mentions execApprovals config, node-command allowlists, and
+  // groupPolicy "allowlist" in many unrelated files.
+  if (/\bexecApproval\s*\(/.test(text) && /allowlist\.has|allowList\.has/.test(text)) return true;
+  // Shipped implementation: the function that evaluates the exec allowlist.
+  if (/function evaluateExecAllowlist\b|function evaluateShellAllowlist\b/.test(text)) return true;
+  return false;
 }
 
 function hasResolvedPath(text: string): boolean {
