@@ -52,6 +52,21 @@ describe("scan fixtures", () => {
     expect(ids).not.toContain("advisory-CVE-2026-24763");
   });
 
+
+  it("flags artifact CVE patterns in a vulnerable shipped build (version-agnostic)", () => {
+    const report = scan({ path: fixture("artifact-vuln") });
+    const ids = report.findings.map((f) => f.id);
+    expect(ids).toContain("artifact-gatewayurl-exfil");
+    expect(ids).toContain("artifact-exec-path-injection");
+  });
+
+  it("does not flag artifact CVE patterns in a patched shipped build", () => {
+    const report = scan({ path: fixture("artifact-patched") });
+    const ids = report.findings.map((f) => f.id);
+    expect(ids).not.toContain("artifact-gatewayurl-exfil");
+    expect(ids).not.toContain("artifact-exec-path-injection");
+  });
+
   it("flags official lan bind and legacy 0.0.0.0 bind", () => {
     const lan = scan({ path: fixture("bad") });
     expect(lan.findings.some((f) => f.id === "gateway-public-bind")).toBe(true);

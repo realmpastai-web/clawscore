@@ -1,0 +1,6 @@
+{
+  "gateway": {
+    "bind": "loopback",
+    "auth": { "mode": "token", "token": "oc_gw_fixture_token_not_a_secret_dd" }
+  }
+}

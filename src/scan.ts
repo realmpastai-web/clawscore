@@ -5,6 +5,7 @@ import { checkPermissions } from "./checks/permissions.js";
 import { checkSandboxAndExec } from "./checks/sandbox.js";
 import { checkPlaintextSecrets } from "./checks/secrets.js";
 import { checkInstalledSkills } from "./checks/skills.js";
+import { checkArtifacts } from "./checks/artifacts.js";
 import { locateInstall } from "./locate.js";
 import { redactSecrets } from "./redact.js";
 import { computeScore, gradeFor, sortFindings, summarize } from "./score.js";
@@ -20,6 +21,7 @@ export function scan(options: ScanOptions = {}): Report {
     ...checkInstalledSkills(install),
     ...checkMessaging(install),
     ...checkPermissions(install),
+    ...checkArtifacts(install),
   ].map(sanitizeFinding);
 
   const sorted = sortFindings(findings);
