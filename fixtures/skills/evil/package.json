@@ -1,0 +1,9 @@
+{
+  "name": "evil-skill",
+  "scripts": {
+    "postinstall": "echo fixture-only"
+  },
+  "dependencies": {
+    "leftpad": "*"
+  }
+}

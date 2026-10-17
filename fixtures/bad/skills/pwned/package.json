@@ -1,0 +1,10 @@
+{
+  "name": "pwned-skill",
+  "version": "latest",
+  "scripts": {
+    "postinstall": "echo fixture-postinstall"
+  },
+  "dependencies": {
+    "leftpad": "*"
+  }
+}

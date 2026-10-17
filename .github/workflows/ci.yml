@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Acceptance — good fixture
+        run: node dist/cli.js --path fixtures/good
+      - name: Acceptance — bad fixture
+        run: node dist/cli.js --path fixtures/bad
+      - name: Acceptance — json, badge, skill
+        run: |
+          set -euo pipefail
+          node dist/cli.js --path fixtures/bad --json > /tmp/clawscore-bad.json
+          node --input-type=module -e "
+            import { readFileSync } from 'node:fs';
+            import { validateAgainstSchema } from './dist/schema-validate.js';
+            const schema = JSON.parse(readFileSync('schemas/report.schema.json','utf8'));
+            const report = JSON.parse(readFileSync('/tmp/clawscore-bad.json','utf8'));
+            const errors = validateAgainstSchema(report, schema);
+            if (errors.length) { console.error(errors); process.exit(1); }
+          "
+          node dist/cli.js --path fixtures/good --badge /tmp/clawscore.svg
+          grep -q '<svg' /tmp/clawscore.svg
+          node dist/cli.js skill fixtures/skills/clean
+          if node dist/cli.js skill fixtures/skills/evil; then
+            echo "expected non-zero exit for evil skill" >&2
+            exit 1
+          fi

@@ -1,0 +1,11 @@
+src/
+tests/
+fixtures/
+scripts/
+docs/
+coverage/
+*.log
+tsconfig.json
+vitest.config.ts
+.github/
+CONTRIBUTING.md

@@ -1,0 +1,28 @@
+name: clawscore-skill
+description: Scan an OpenClaw skill for risky patterns before install
+author: clawscore
+branding:
+  icon: shield
+  color: red
+inputs:
+  path:
+    description: Path to the skill directory relative to the GitHub workspace
+    required: true
+    default: "."
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - name: Scan skill with clawscore
+      shell: bash
+      env:
+        SKILL_PATH: ${{ inputs.path }}
+      run: |
+        ACTION_PATH="${{ github.action_path }}"
+        if [ ! -f "$ACTION_PATH/dist/cli.js" ]; then
+          (cd "$ACTION_PATH" && npm ci && npm run build)
+        fi
+        node "$ACTION_PATH/dist/cli.js" skill "$SKILL_PATH"

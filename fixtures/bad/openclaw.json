@@ -1,0 +1,45 @@
+{
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "bind": "lan",
+    "auth": {
+      "mode": "token"
+    },
+    "controlUi": {
+      "enabled": true,
+      "allowedOrigins": ["*"],
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  },
+  "env": {
+    "vars": {
+      "OPENAI_API_KEY": "fixture-openai-key-placeholder-value"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "sandbox": {
+        "mode": "off"
+      }
+    }
+  },
+  "tools": {
+    "exec": {
+      "mode": "full"
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "open",
+      "allowFrom": ["*"]
+    },
+    "discord": {
+      "enabled": true,
+      "token": "discord-bot-token-placeholder-value",
+      "dmPolicy": "open"
+    }
+  }
+}

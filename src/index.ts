@@ -1,0 +1,12 @@
+export { CLAWSCORE_VERSION } from "./types.js";
+export { scan } from "./scan.js";
+export { scanSkill, skillExitCode } from "./skill-scan.js";
+export { planFix, applyFix, restoreFromBackup } from "./fix.js";
+export { loadAdvisories, updateAdvisories } from "./advisories.js";
+export { formatTerminal } from "./report/terminal.js";
+export { formatJson } from "./report/json.js";
+export { formatMarkdown } from "./report/markdown.js";
+export { formatBadge } from "./report/badge.js";
+export { validateAgainstSchema } from "./schema-validate.js";
+export { parseArgs, runCli } from "./cli.js";
+export type { Report, Finding, Advisory, Grade, Severity } from "./types.js";
