@@ -3,6 +3,6 @@
   <text x="24" y="40" fill="#9ca3af" font-family="ui-monospace,monospace" font-size="14">$ npx clawscore --path ~/.openclaw</text>
   <text x="24" y="80" fill="#f9fafb" font-family="ui-monospace,monospace" font-size="16">clawscore 0.1.0</text>
   <text x="24" y="110" fill="#34d399" font-family="ui-monospace,monospace" font-size="20">SCORE  94/100   GRADE A</text>
-  <text x="24" y="150" fill="#9ca3af" font-family="ui-monospace,monospace" font-size="13">Demo GIF placeholder  swap for a terminal recording in docs/demo.gif</text>
+  <text x="24" y="150" fill="#9ca3af" font-family="ui-monospace,monospace" font-size="13">Placeholder until a real terminal recording exists</text>
   <text x="24" y="180" fill="#6b7280" font-family="ui-monospace,monospace" font-size="12">Not affiliated with OpenClaw. Offline scan; secrets redacted.</text>
 </svg>

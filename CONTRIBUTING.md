@@ -33,7 +33,9 @@ If you cannot verify a candidate CVE, leave it out and mention it in the PR.
 
 ## Safe fixes
 
-`clawscore fix` may only apply reversible hardening (bind loopback, file modes, sender allow-list stub, origin allow-list). It must **backup first**, print a diff, and require `--yes`. Never delete skills.
+`clawscore fix` may only apply reversible hardening (bind loopback, file modes, sender allow-list stub, origin allow-list). It must **refuse if the backup cannot be written**, print the backup path and `clawscore fix --restore <backupDir>`, print a diff, and require `--yes`. Edits must be **in-place JSON5** (comments stay). Never delete skills, invent tokens, or enable sandbox.
+
+Config keys must match official OpenClaw docs/source. See [docs/CONFIG-SOURCES.md](docs/CONFIG-SOURCES.md).
 
 ## Pull requests
 
