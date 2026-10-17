@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { chmodSync, existsSync, readdirSync, statSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,7 +9,13 @@ function walkFiles(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    const st = statSync(p);
+    let st;
+    try {
+      st = lstatSync(p);
+    } catch {
+      continue;
+    }
+    if (st.isSymbolicLink()) continue;
     if (st.isDirectory()) walkFiles(p, out);
     else if (st.isFile()) out.push(p);
   }

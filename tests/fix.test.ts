@@ -73,6 +73,19 @@ describe("clawscore fix", () => {
     }
   });
 
+
+  it("loudly warns that the sender placeholder blocks all messages until replaced", () => {
+    const dir = copyFixture("bad");
+    try {
+      const r = runCli(["fix", "--path", dir, "--yes"]);
+      expect(r.status).toBe(0);
+      expect(r.stdout).toMatch(/WARNING: fix inserted the placeholder/);
+      expect(r.stdout).toMatch(/ALL incoming messages are blocked until you replace it/);
+    } finally {
+      cleanup(dir);
+    }
+  });
+
   it("preserves JSON5 comments and untouched lines", () => {
     const dir = copyFixture("mixed");
     try {

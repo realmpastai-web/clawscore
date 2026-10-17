@@ -1,6 +1,17 @@
 import { loadAdvisories, severityFromAdvisory } from "../advisories.js";
 import type { Finding, Install } from "../types.js";
-import { versionInRange } from "../version-cmp.js";
+import { isParseableVersion, versionInRange } from "../version-cmp.js";
+
+function infoFinding(id: string, title: string, evidence: string): Finding {
+  return {
+    id,
+    title,
+    severity: "info",
+    weight: 0,
+    evidence,
+    fix: "No action required. Informational only.",
+  };
+}
 
 export function checkAdvisories(install: Install): Finding[] {
   const findings: Finding[] = [];
@@ -16,8 +27,29 @@ export function checkAdvisories(install: Install): Finding[] {
     });
     return findings;
   }
+  const version = install.version.trim();
+  if (version.endsWith("-fixture")) {
+    findings.push(
+      infoFinding(
+        "advisory-skipped",
+        "Advisory check skipped",
+        "advisory check skipped: fixture version",
+      ),
+    );
+    return findings;
+  }
+  if (!isParseableVersion(version)) {
+    findings.push(
+      infoFinding(
+        "version-unparsed",
+        "OpenClaw version could not be parsed",
+        `Version ${version} could not be parsed for advisory matching`,
+      ),
+    );
+    return findings;
+  }
   for (const adv of advisories) {
-    if (!versionInRange(install.version, adv.affected)) continue;
+    if (!versionInRange(version, adv.affected)) continue;
     findings.push({
       id: `advisory-${adv.id}`,
       title: `${adv.id} matches installed version`,

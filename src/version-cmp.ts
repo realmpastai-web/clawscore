@@ -1,7 +1,13 @@
-/** OpenClaw uses calendar versions like 2026.1.29 (optional leading v, optional -pre). */
+/** OpenClaw uses calendar versions like 2026.1.29 (optional leading v, optional -pre).
+ *  Pre-calendar 0.x clawdbot/moltbot/openclaw versions are also numeric dotted. */
 
 export function normalizeVersion(raw: string): string {
   return raw.trim().replace(/^v/i, "").split(/[-+]/)[0] ?? raw.trim();
+}
+
+/** True when the core (pre-release stripped) is one or more numeric dotted segments. */
+export function isParseableVersion(raw: string): boolean {
+  return /^\d+(\.\d+)*$/.test(normalizeVersion(raw));
 }
 
 export function compareVersions(a: string, b: string): number {

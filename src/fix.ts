@@ -86,6 +86,13 @@ export function planFix(pathOverride?: string): FixPlan {
   notes.push("Does not remove or rewrite secret values.");
   notes.push("Does not create a gateway token or enable the agent sandbox.");
   const nextText = edited.text;
+  if (nextText.includes(SENDER_STUB)) {
+    notes.unshift(
+      `WARNING: fix inserted the placeholder "${SENDER_STUB}" into your sender allow-list. ` +
+        `While this placeholder is present the channel allow-list matches no one, so ALL incoming ` +
+        `messages are blocked until you replace it with your real sender IDs. Edit ${basename(install.configPath)} and swap it out before relying on messaging.`,
+    );
+  }
   const diff = unifiedDiff(install.configText, nextText, basename(install.configPath));
   const permFiles = [install.configPath];
   const credDir = join(install.root, "credentials");

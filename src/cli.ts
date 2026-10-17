@@ -17,7 +17,7 @@ const HELP = `clawscore ${CLAWSCORE_VERSION}
 One command. A 0-100 security score for your OpenClaw setup, and the fixes.
 
 Usage:
-  clawscore [scan] [--path <dir>] [--json] [--markdown] [--badge <out.svg>]
+  clawscore [scan] [--path <dir>] [--package-path <dir>] [--json] [--markdown] [--badge <out.svg>]
   clawscore fix [--path <dir>] [--yes]
   clawscore fix --restore <backupDir> [--path <dir>]
   clawscore skill <path>
@@ -25,6 +25,7 @@ Usage:
 
 Options:
   --path <dir>           OpenClaw install/config root (default: ~/.openclaw)
+  --package-path <dir>   OpenClaw npm package directory (contains package.json + dist/)
   --json                 Print the report as JSON
   --markdown             Print a shareable Markdown report
   --badge <out.svg>      Write a shields.io-style SVG badge
@@ -64,6 +65,10 @@ export function parseArgs(argv: string[]): CliOptions {
       opts.path = argv[++i];
       if (!opts.path) throw new Error("--path requires a directory");
     } else if (a.startsWith("--path=")) opts.path = a.slice("--path=".length);
+    else if (a === "--package-path") {
+      opts.packagePath = argv[++i];
+      if (!opts.packagePath) throw new Error("--package-path requires a directory");
+    } else if (a.startsWith("--package-path=")) opts.packagePath = a.slice("--package-path=".length);
     else if (a === "--badge") {
       opts.badge = argv[++i];
       if (!opts.badge) throw new Error("--badge requires an output path");
@@ -152,7 +157,7 @@ function emitReport(report: Report, opts: CliOptions, io: { log: (s: string) => 
 }
 
 function runScan(opts: CliOptions, io: { log: (s: string) => void }): number {
-  const report = scan({ path: opts.path });
+  const report = scan({ path: opts.path, packagePath: opts.packagePath });
   emitReport(report, opts, io);
   return 0;
 }

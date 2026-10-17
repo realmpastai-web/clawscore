@@ -8,3 +8,7 @@ tmp/
 fixtures/**/*.bak*
 test-output.svg
 .vitest/
+
+# clawscore-deep: fixture dist bundles are test data, keep them tracked
+!fixtures/**/dist/
+!fixtures/**/dist/**
