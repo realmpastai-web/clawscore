@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/mark.png" width="128" alt="clawscore mark"></p>
+
 # clawscore
 
 **One command. A 0-100 security score for your OpenClaw setup, and the fixes.**
