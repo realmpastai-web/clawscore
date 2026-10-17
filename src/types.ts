@@ -67,16 +67,20 @@ export interface Install {
   configText: string | null;
   version: string | null;
   skillDirs: string[];
+  /** Directory of the installed OpenClaw/clawdbot/moltbot package (contains dist/). */
+  packageDir: string | null;
 }
 
 export interface ScanOptions {
   path?: string;
+  packagePath?: string;
   advisories?: Advisory[];
 }
 
 export interface CliOptions {
   command: "scan" | "fix" | "skill";
   path?: string;
+  packagePath?: string;
   skillPath?: string;
   json: boolean;
   markdown: boolean;

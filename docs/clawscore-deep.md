@@ -5,7 +5,8 @@ _Analyst: SanFire. All inputs are MIT-licensed OpenClaw npm releases (openclaw, 
 ## 1. Version reality check (correcting the 1.28/1.29 assumption)
 - There is **no `openclaw@2026.1.28`** on npm (404). The first non-0.x line is `2026.1.29-beta.1 … beta.7`, then `2026.1.29`, `2026.1.30`, then `2026.2.x` … up to the current `2026.10.x` (`2026.10.1 … 2026.10.4`, latest beta `2026.10.10-beta.1`).
 - The in-repo advisory data (clawscore `data/advisories.json`) states both CVEs are **fixed in `2026.1.29`** (`affected: <2026.1.29`).
-- **Key finding:** every OpenClaw version still fetchable from npm is already patched for both CVEs. The last pre-fix build (`2026.1.29-beta.7`) and the release (`2026.1.29`) are byte-identical in the two security-relevant areas, and the fix markers are already present in both. So **no vulnerable OpenClaw artifact ships publicly** to diff against. The CVE fixes landed before the earliest surviving release.
+- **Key finding:** every OpenClaw version still fetchable from npm is already patched for both CVEs. The last pre-release build (`2026.1.29-beta.7`) and the release (`2026.1.29`) are byte-identical in the two security-relevant areas, and the fix markers are already present in both. So **no vulnerable OpenClaw artifact ships publicly** to diff against. The CVE fixes landed before the earliest surviving release.
+- **Semver note:** standard semver treats `2026.1.29-beta.*` as less than `2026.1.29`, so those versions fall in the advisory range `<2026.1.29` even though the shipped JS already contains both CVE fixes. The artifact scan is the ground truth for whether a build is patched. `data/advisories.json` is unchanged (`affected: <2026.1.29`).
 - Current/relevant line per Santhosh is `2026.10.x`. Confirmed `2026.10.2`, `2026.10.3`, `2026.10.4` are all patched (fix markers present, see §2–§3). The 10.x tree is heavily code-split/refactored (rolldown), so detectors must scan `dist/**/*.js` broadly rather than fixed file paths.
 
 Artifacts examined (unpacked under this folder): v_vuln=2026.1.29-beta.7, v_fix=2026.1.29, ext_2026.10.2/3/4.
@@ -24,7 +25,9 @@ Artifacts examined (unpacked under this folder): v_vuln=2026.1.29-beta.7, v_fix=
 - Version-agnostic rule: an install whose exec-approval code **allowlists commands but never resolves the binary to a real path** (`resolveExecutable`/`resolvedPath`/`realpathSync`) is vulnerable.
 
 ## 4. Detector design handed to clawscore (PR #2, v0.1.1)
-Add an artifact scan over the installed package's `dist/` (version-agnostic, no network, read-only):
-- **R1 (CVE-2026-25253):** vuln iff `gatewayUrl` URL-param read indicator present AND no gateway confirmation guard token anywhere in control-ui bundles.
-- **R2 (CVE-2026-24763):** vuln iff exec allowlist indicator present AND no resolved-binary-path token anywhere in dist.
-- Both are conservative: all real shipping releases (1.29, 10.2–10.4) carry the guards → no false positive; a build with the guard stripped → flagged. Verified against the five unpacked trees.
+Add an artifact scan over the installed package's `dist/` (version-agnostic, no network, read-only). Locate the package via `--package-path`, then the `openclaw`/`clawdbot`/`moltbot` binary on PATH, then `npm root -g/<name>`, then `dist/` candidates under `--path`. Always emit one info finding (`artifact scan: ran on <path>` or `artifact scan: skipped, OpenClaw package not found (use --package-path)`).
+- **R1 (CVE-2026-25253):** flag only when a control-ui file reads `gatewayUrl` from params **and that file has no guard token**, and no other control-ui file holds the guard.
+- **R2 (CVE-2026-24763):** flag only when a file has the exec allowlist indicator and neither it nor any file sharing its chunk-name prefix (incl. `exec-*` / `executable-*` family) contains `resolveExecutable`/`resolvedPath`/`realpathSync`. A `resolvedPath` in an unrelated file does not suppress the finding.
+- Walker: `lstatSync`, skip symlinks, track visited realpaths. Hitting the file budget emits info `artifact scan incomplete` and **no** artifact high findings.
+- Evidence for high artifact findings starts with `Heuristic pattern match:`. If a version advisory for the same CVE is already present, drop the artifact finding and append its evidence to the advisory (no double penalty).
+- Conservative: if in doubt, no finding. All real shipping releases (1.29, 10.2–10.4) carry the guards → no false positive; a build with the guard stripped → flagged.

@@ -5,15 +5,15 @@ import { checkPermissions } from "./checks/permissions.js";
 import { checkSandboxAndExec } from "./checks/sandbox.js";
 import { checkPlaintextSecrets } from "./checks/secrets.js";
 import { checkInstalledSkills } from "./checks/skills.js";
-import { checkArtifacts } from "./checks/artifacts.js";
+import { checkArtifacts, reconcileArtifactFindings } from "./checks/artifacts.js";
 import { locateInstall } from "./locate.js";
 import { redactSecrets } from "./redact.js";
 import { computeScore, gradeFor, sortFindings, summarize } from "./score.js";
 import { CLAWSCORE_VERSION, type Finding, type Report, type ScanOptions } from "./types.js";
 
 export function scan(options: ScanOptions = {}): Report {
-  const install = locateInstall(options.path);
-  const findings: Finding[] = [
+  const install = locateInstall(options.path, options.packagePath);
+  const findings: Finding[] = reconcileArtifactFindings([
     ...checkAdvisories(install),
     ...checkGateway(install),
     ...checkPlaintextSecrets(install),
@@ -22,7 +22,7 @@ export function scan(options: ScanOptions = {}): Report {
     ...checkMessaging(install),
     ...checkPermissions(install),
     ...checkArtifacts(install),
-  ].map(sanitizeFinding);
+  ]).map(sanitizeFinding);
 
   const sorted = sortFindings(findings);
   const score = computeScore(sorted);

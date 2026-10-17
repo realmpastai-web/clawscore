@@ -12,7 +12,10 @@ export function fixture(name: string): string {
   return join(FIXTURES, name);
 }
 
-export function runCli(args: string[]): {
+export function runCli(
+  args: string[],
+  env: NodeJS.ProcessEnv = process.env,
+): {
   status: number | null;
   stdout: string;
   stderr: string;
@@ -20,7 +23,7 @@ export function runCli(args: string[]): {
   const result = spawnSync(process.execPath, [CLI, ...args], {
     encoding: "utf8",
     cwd: REPO,
-    env: { ...process.env, NO_COLOR: "1" },
+    env: { ...env, NO_COLOR: "1" },
   });
   return {
     status: result.status,

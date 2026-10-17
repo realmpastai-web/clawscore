@@ -16,6 +16,10 @@ export function checkAdvisories(install: Install): Finding[] {
     });
     return findings;
   }
+  // Fixture / non-calendar versions are not matched against OpenClaw CVE ranges.
+  if (!/^v?20\d{2}\.\d+\.\d+/.test(install.version.trim())) {
+    return findings;
+  }
   for (const adv of advisories) {
     if (!versionInRange(install.version, adv.affected)) continue;
     findings.push({

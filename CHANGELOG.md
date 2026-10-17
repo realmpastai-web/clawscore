@@ -2,8 +2,11 @@
 
 ## v0.1.1 (unreleased)
 - Artifact detectors (clawscore-deep): scan the installed OpenClaw package's shipped `dist/` bundles for the two known CVE patterns, version-agnostically.
-  - `artifact-gatewayurl-exfil` (CVE-2026-25253 / GHSA-g8p2-7wf7-98mq): Control UI reads `gatewayUrl` from a URL param with no pending/confirmation guard.
-  - `artifact-exec-path-injection` (CVE-2026-24763 / GHSA-mc68-q9jw-2h3v): exec approvals allowlist commands without resolving the binary to a real path.
+  - Locate the package via `--package-path`, then the `openclaw`/`clawdbot`/`moltbot` binary on PATH, then `npm root -g/<name>`, then `dist/` under `--path`. Always emit an info finding (`ran on` / `skipped`).
+  - `artifact-gatewayurl-exfil` (CVE-2026-25253 / GHSA-g8p2-7wf7-98mq): a control-ui file reads `gatewayUrl` from a URL param and neither that file nor any other control-ui file has a pending/confirmation guard.
+  - `artifact-exec-path-injection` (CVE-2026-24763 / GHSA-mc68-q9jw-2h3v): an exec-allowlist file has no resolved-binary-path match in itself or its chunk family (`resolveExecutable`/`resolvedPath`/`realpathSync`).
+  - No double penalty: if the matching version advisory is already present, drop the artifact finding and append its evidence.
+  - Walker skips symlinks and tracks visited realpaths; an incomplete scan emits no artifact highs. Evidence is prefixed with `Heuristic pattern match:`.
   - Derived from a clean-room REA comparison of open-source OpenClaw releases; see docs/clawscore-deep.md. All current shipping releases (2026.1.29, 2026.10.2-4) pass with no finding.
 - `fix` now loudly warns that the inserted sender placeholder (`REPLACE_WITH_YOUR_SENDER_ID`) blocks ALL incoming messages until it is replaced with real sender IDs.
 
