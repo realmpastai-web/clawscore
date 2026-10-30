@@ -17,7 +17,7 @@ const HELP = `clawscore ${CLAWSCORE_VERSION}
 One command. A 0-100 security score for your OpenClaw setup, and the fixes.
 
 Usage:
-  clawscore [scan] [--path <dir>] [--package-path <dir>] [--json] [--markdown] [--badge <out.svg>]
+  clawscore [scan] [--path <dir>] [--package-path <dir>] [--json] [--markdown] [--badge <out.svg>] [--min-score <n>]
   clawscore fix [--path <dir>] [--yes]
   clawscore fix --restore <backupDir> [--path <dir>]
   clawscore skill <path>
@@ -29,6 +29,7 @@ Options:
   --json                 Print the report as JSON
   --markdown             Print a shareable Markdown report
   --badge <out.svg>      Write a shields.io-style SVG badge
+  --min-score <n>        Exit 1 if the scan score is below n (0-100), for CI gates
   --yes                  Apply safe fixes (backup first). Without --yes, fix is a dry run.
   --restore <backupDir>  Restore openclaw.json from a .clawscore-backup directory
   --update-advisories    Fetch advisory data over the network (off by default)
@@ -73,6 +74,14 @@ export function parseArgs(argv: string[]): CliOptions {
       opts.badge = argv[++i];
       if (!opts.badge) throw new Error("--badge requires an output path");
     } else if (a.startsWith("--badge=")) opts.badge = a.slice("--badge=".length);
+    else if (a === "--min-score" || a.startsWith("--min-score=")) {
+      const v = a === "--min-score" ? argv[++i] : a.slice("--min-score=".length);
+      const n = Number(v);
+      if (!v || !Number.isInteger(n) || n < 0 || n > 100) {
+        throw new Error("--min-score requires an integer from 0 to 100");
+      }
+      opts.minScore = n;
+    }
     else if (!a.startsWith("-")) rest.push(a);
     else throw new Error(`unknown option: ${a}`);
   }
@@ -156,9 +165,16 @@ function emitReport(report: Report, opts: CliOptions, io: { log: (s: string) => 
   }
 }
 
-function runScan(opts: CliOptions, io: { log: (s: string) => void }): number {
+function runScan(
+  opts: CliOptions,
+  io: { log: (s: string) => void; err: (s: string) => void },
+): number {
   const report = scan({ path: opts.path, packagePath: opts.packagePath });
   emitReport(report, opts, io);
+  if (opts.minScore !== undefined && report.score < opts.minScore) {
+    io.err(`clawscore: score ${report.score} is below --min-score ${opts.minScore}`);
+    return 1;
+  }
   return 0;
 }
 

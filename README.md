@@ -56,6 +56,8 @@ findings  critical 4  high 16  medium 3  low 1  info 0
 
 Share the Markdown form (`--markdown`) or a shields-style badge (`--badge out.svg`).
 
+In CI, `--min-score <n>` makes a scan exit 1 when the score is below `n` (0–100); without it, scans exit 0.
+
 ## What it checks
 
 | Id | What |

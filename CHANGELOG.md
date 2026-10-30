@@ -1,6 +1,7 @@
 # Changelog
 
 ## v0.1.1 (unreleased)
+- `--min-score <n>`: a scan exits 1 when the score is below `n` (0–100), so CI can gate on it. Invalid values exit 2.
 - Artifact detectors (clawscore-deep): scan the installed OpenClaw package's shipped `dist/` bundles for the two known CVE patterns, version-agnostically.
   - Locate the package via `--package-path`, then `dist/` under `--path` when `--path` is passed, then the `openclaw`/`clawdbot`/`moltbot` binary on PATH, then `npm root -g/<name>`. `CLAWSCORE_NO_PKG_DISCOVERY=1` skips PATH and npm lookups. Always emit an info finding (`ran on` / `skipped`).
   - Advisory matching includes pre-calendar 0.x clawdbot/moltbot/openclaw versions (they fall in `<2026.1.29`). Only versions ending in `-fixture` are skipped (info finding); unparseable versions also emit info instead of a silent skip.
