@@ -56,6 +56,15 @@ findings  critical 4  high 16  medium 3  low 1  info 0
 
 Share the Markdown form (`--markdown`) or a shields-style badge (`--badge out.svg`).
 
+In CI, `--min-score <n>` makes a scan exit 1 when the score is below `n` (0–100); without it, scans exit 0.
+
+```bash
+npx clawscore --path ~/.openclaw --min-score 80   # exit 1 if the score is below 80
+npx clawscore --min-score=90 --json               # gate and keep the JSON report
+```
+
+Exit codes: `0` score meets the threshold (or no `--min-score`), `1` score below it, `2` invalid value (not a whole number 0–100).
+
 ## What it checks
 
 | Id | What |

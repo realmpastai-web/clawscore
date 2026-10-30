@@ -85,6 +85,7 @@ export interface CliOptions {
   json: boolean;
   markdown: boolean;
   badge?: string;
+  minScore?: number;
   yes: boolean;
   restore?: string;
   updateAdvisories: boolean;

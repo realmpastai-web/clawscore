@@ -76,4 +76,20 @@ describe("CLI", () => {
     expect(r.stdout).toMatch(/\*\*Score:\*\*/);
     expect(r.stdout).toMatch(/\*\*Score math:\*\*/);
   });
+
+  it("--min-score gates the exit code", () => {
+    expect(runCli(["--path", fixture("good"), "--min-score", "90"]).status).toBe(0);
+    const bad = runCli(["--path", fixture("bad"), "--min-score=50"]);
+    expect(bad.status).toBe(1);
+    expect(bad.stderr).toMatch(/below --min-score 50/);
+    expect(runCli(["--path", fixture("bad"), "--min-score", "0"]).status).toBe(0);
+  });
+
+  it("--min-score rejects non-integer or out-of-range values", () => {
+    for (const v of ["abc", "101", "-1", "4.5"]) {
+      const r = runCli(["--path", fixture("good"), "--min-score", v]);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(/--min-score requires an integer from 0 to 100/);
+    }
+  });
 });
